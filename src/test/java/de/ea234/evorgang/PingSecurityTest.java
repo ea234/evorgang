@@ -23,7 +23,7 @@ import org.springframework.mock.web.MockHttpSession;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-//@ActiveProfiles("test")
+@ActiveProfiles("h2")
 class PingSecurityTest
 {
   @Autowired
