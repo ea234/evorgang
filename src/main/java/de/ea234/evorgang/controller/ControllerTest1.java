@@ -21,6 +21,8 @@ public class ControllerTest1 {
 	@GetMapping( "/t1" )
 	public String hallo()
 	{
+	  // http://localhost:8080/api/test/t1
+	  
 		return "hallo " + System.currentTimeMillis();
 	}
 

@@ -11,13 +11,13 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table ( name = "evg_auth_authorities" )
-public class EvgGrandetAuthority implements GrantedAuthority
+public class EvgGrantedAuthority implements GrantedAuthority
 {
-  public EvgGrandetAuthority()
+  public EvgGrantedAuthority()
   {
   }
 
-  public EvgGrandetAuthority( String authority, EvgBenutzer userEntity )
+  public EvgGrantedAuthority( String authority, EvgBenutzer userEntity )
   {
     this.authority = authority;
     this.userEntity = userEntity;

@@ -33,7 +33,7 @@ public class EvgBenutzer implements UserDetails
   private boolean                    locked;
 
   @OneToMany ( mappedBy = "userEntity", fetch = FetchType.EAGER, cascade = CascadeType.ALL )
-  private Set< EvgGrandetAuthority > authorities;
+  private Set< EvgGrantedAuthority > authorities;
 
   public EvgBenutzer()
   {
@@ -43,7 +43,7 @@ public class EvgBenutzer implements UserDetails
   {
     this.username = username;
     this.password = password;
-    this.authorities = authorities.stream().map( GrantedAuthority::getAuthority ).map( a -> new EvgGrandetAuthority( a, this ) ).collect( Collectors.toSet() );
+    this.authorities = authorities.stream().map( GrantedAuthority::getAuthority ).map( a -> new EvgGrantedAuthority( a, this ) ).collect( Collectors.toSet() );
   }
 
   public String getUsername()

@@ -19,7 +19,6 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class WebSecurityConfig
 {
-
   /*
   docker run --link some_database:db -p 8080:8083 adminer
   docker run --link jdbc:mariadb://localhost:3306/epost2 -p 8080:8083 adminer
@@ -78,17 +77,13 @@ public class WebSecurityConfig
     var daoAuthenticationProvider = new DaoAuthenticationProvider(manager);
 
     daoAuthenticationProvider.setPasswordEncoder( encoder );
-
     
     return daoAuthenticationProvider;
   }
-
   
   
  // @Bean
-  public CommandLineRunner initUsers(
-          UserDetailsManager manager,
-          PasswordEncoder encoder) {
+  public CommandLineRunner initUsers( UserDetailsManager manager, PasswordEncoder encoder) {
 
       return args -> {
 
@@ -122,8 +117,9 @@ public class WebSecurityConfig
   @Order ( 1 )
   SecurityFilterChain h2( HttpSecurity http ) throws Exception
   {
-    http.securityMatcher( "/h2/**" ).csrf( csrf -> csrf.ignoringRequestMatchers( "/h2/**" ) ).
-    headers( h -> h.frameOptions( f -> f.sameOrigin() ) ).authorizeHttpRequests( auth -> auth.anyRequest().permitAll() );
+    http.securityMatcher( "/h2/**" ).csrf( csrf -> csrf.ignoringRequestMatchers( "/h2/**" ) )
+                                    .headers( h -> h.frameOptions( f -> f.sameOrigin() ) )
+                                    .authorizeHttpRequests( auth -> auth.anyRequest().permitAll() );
 
     return http.build();
   }
@@ -132,8 +128,11 @@ public class WebSecurityConfig
   @Order ( 2 )
   SecurityFilterChain app( HttpSecurity http ) throws Exception
   {
-
-    http.authorizeHttpRequests( auth -> auth.requestMatchers( "/admin1/**" ).hasRole( "ADMIN" ).requestMatchers( "/admin2/**" ).permitAll().requestMatchers( "/logoutsuccessfull" ).permitAll().anyRequest().authenticated() ).formLogin( form -> form.permitAll() );
+    http.authorizeHttpRequests( auth -> 
+        auth.requestMatchers( "/admin1/**" ).hasRole( "ADMIN" )
+            .requestMatchers( "/admin2/**" ).permitAll()
+            .requestMatchers( "/logoutsuccessfull" ).permitAll().anyRequest().authenticated() )
+            .formLogin( form -> form.permitAll() );
     //.oauth2Login(Customizer.withDefaults());
 
     return http.build();

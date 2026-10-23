@@ -1,6 +1,5 @@
 package de.ea234.evorgang.config;
 
-
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -26,7 +25,8 @@ public class MyJpaUserDetailsManager implements UserDetailsManager {
     EvgBenutzer my_user = new EvgBenutzer( user.getUsername(), user.getPassword(), user.getAuthorities() );
 
     my_user.setEnable( true );
-    my_user.setLocked(  ! user.isAccountNonLocked() );
+    
+    my_user.setLocked( ! user.isAccountNonLocked() );
 
     userRepository.save( my_user );
   }
@@ -73,5 +73,4 @@ public class MyJpaUserDetailsManager implements UserDetailsManager {
 
     return my_user;
   }
-
 }
