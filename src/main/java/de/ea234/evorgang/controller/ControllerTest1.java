@@ -34,7 +34,7 @@ public class ControllerTest1 {
 	  @GetMapping(path = "/ping", produces = MediaType.TEXT_PLAIN_VALUE)
 	  public String ping()
 	  {
-	    // http://localhost:8080/ping
+	    // http://localhost:8080/api/test/ping
 
 	    log.info( "RestControllerVorgang ping " + System.currentTimeMillis() );
 

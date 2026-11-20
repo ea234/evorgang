@@ -15,6 +15,29 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
+
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.Authentication;
+//import org.springframework.security.core.userdetails.UserDetailsManager;
+import org.springframework.security.provisioning.UserDetailsManager;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 @EnableWebSecurity
 @Configuration
 public class WebSecurityConfig
@@ -71,6 +94,7 @@ public class WebSecurityConfig
 //
 //  
 
+
   @Bean
   public DaoAuthenticationProvider daoAuthenticationProvider( UserDetailsManager manager, PasswordEncoder encoder )
   {
@@ -81,6 +105,12 @@ public class WebSecurityConfig
     return daoAuthenticationProvider;
   }
   
+  @Bean
+  public PasswordEncoder passwordEncoder()
+  {
+    return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+  }
+
   
  // @Bean
   public CommandLineRunner initUsers( UserDetailsManager manager, PasswordEncoder encoder) {
@@ -108,12 +138,6 @@ public class WebSecurityConfig
   }
   
   @Bean
-  public PasswordEncoder passwordEncoder()
-  {
-    return PasswordEncoderFactories.createDelegatingPasswordEncoder();
-  }
-
-  @Bean
   @Order ( 1 )
   SecurityFilterChain h2( HttpSecurity http ) throws Exception
   {
@@ -124,20 +148,115 @@ public class WebSecurityConfig
     return http.build();
   }
 
+//  @Bean
+//  @Order ( 2 )
+//  SecurityFilterChain app( HttpSecurity http ) throws Exception
+//  {
+//    http.authorizeHttpRequests( auth -> 
+//        auth.requestMatchers( "/admin1/**" ).hasRole( "ADMIN" )
+//            .requestMatchers( "/admin2/**" ).permitAll()
+//            .requestMatchers( "/logoutsuccessfull" ).permitAll().anyRequest().authenticated() )
+//            .formLogin( form -> form.permitAll() );
+//    //.oauth2Login(Customizer.withDefaults());
+//
+//    return http.build();
+//  }
+
+  
   @Bean
-  @Order ( 2 )
-  SecurityFilterChain app( HttpSecurity http ) throws Exception
+  @Order(2)
+  SecurityFilterChain app(HttpSecurity http) throws Exception
   {
-    http.authorizeHttpRequests( auth -> 
-        auth.requestMatchers( "/admin1/**" ).hasRole( "ADMIN" )
-            .requestMatchers( "/admin2/**" ).permitAll()
-            .requestMatchers( "/logoutsuccessfull" ).permitAll().anyRequest().authenticated() )
-            .formLogin( form -> form.permitAll() );
-    //.oauth2Login(Customizer.withDefaults());
+    CookieCsrfTokenRepository csrfRepository =
+        CookieCsrfTokenRepository.withHttpOnlyFalse();
+
+    http
+      .csrf(csrf -> csrf
+          .csrfTokenRepository(csrfRepository)
+          .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
+      )
+
+      .authorizeHttpRequests(auth -> auth
+          .requestMatchers("/csrf").permitAll()
+          .requestMatchers("/admin1/**").hasRole("ADMIN")
+          .requestMatchers("/admin2/**").permitAll()
+          .requestMatchers("/logoutsuccessfull").permitAll()
+          .anyRequest().authenticated()
+      )
+
+      .formLogin(form -> form
+          .permitAll()
+          .successHandler((request, response, authentication) -> {
+
+            // Neues CSRF-Token erzeugen
+            var csrfToken = csrfRepository.generateToken(request);
+
+            // Neues Token als Cookie an den Browser senden
+            csrfRepository.saveToken(csrfToken, request, response);
+
+            if (isAngularRequest(request)) {
+
+                response.setStatus(HttpServletResponse.SC_OK);
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+                response.getWriter().write("{\"authenticated\":true}");
+            }
+            else {
+
+                // Normales Browser-Verhalten beibehalten
+                new SavedRequestAwareAuthenticationSuccessHandler()
+                    .onAuthenticationSuccess(request, response, authentication);
+            }
+          })
+          .failureHandler((request, response, exception) -> {
+            if (isAngularRequest(request)) {
+              response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+              response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+              response.getWriter().write(
+                  "{\"authenticated\":false,\"message\":\"Anmeldung fehlgeschlagen\"}");
+            }
+            else {
+              new SimpleUrlAuthenticationFailureHandler("/login?error")
+                  .onAuthenticationFailure(request, response, exception);
+            }
+          })
+      )
+
+      .logout(logout -> logout
+          .logoutSuccessHandler((request, response, authentication) -> {
+
+            // Nach Logout ein neues CSRF-Token bereitstellen
+            var csrfToken = csrfRepository.generateToken(request);
+            csrfRepository.saveToken(csrfToken, request, response);
+
+            if (isAngularRequest(request)) {
+              response.setStatus(HttpServletResponse.SC_OK);
+              response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+              response.getWriter().write("{\"authenticated\":false}");
+            }
+            else {
+              new SimpleUrlAuthenticationSuccessHandler("/login?logout")
+                  .onAuthenticationSuccess(request, response, authentication);
+            }
+          })
+      );
 
     return http.build();
   }
 
+  private boolean isAngularRequest(HttpServletRequest request)
+  {
+    String accept = request.getHeader("Accept");
+    String requestedWith = request.getHeader("X-Requested-With");
+
+    return (accept != null && accept.contains(MediaType.APPLICATION_JSON_VALUE))
+        || "XMLHttpRequest".equalsIgnoreCase(requestedWith);
+  }
+  
+  
+  
+  
+  
 /*
  * <dependency>
   <groupId>org.springframework.boot</groupId>
