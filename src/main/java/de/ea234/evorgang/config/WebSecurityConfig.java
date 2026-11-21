@@ -184,6 +184,25 @@ public class WebSecurityConfig
           .anyRequest().authenticated()
       )
 
+      .exceptionHandling(exception -> exception
+          .authenticationEntryPoint((request, response, authException) -> {
+
+            if (isAngularRequest(request)) {
+
+              response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+              response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+              response.setCharacterEncoding("UTF-8");
+
+              response.getWriter().write(
+                  "{\"authenticated\":false,\"message\":\"Nicht angemeldet\"}");
+            }
+            else {
+
+              response.sendRedirect("/login");
+            }
+          })
+      )
+      
       .formLogin(form -> form
           .permitAll()
           .successHandler((request, response, authentication) -> {
@@ -246,15 +265,8 @@ public class WebSecurityConfig
 
   private boolean isAngularRequest(HttpServletRequest request)
   {
-    String accept = request.getHeader("Accept");
-    String requestedWith = request.getHeader("X-Requested-With");
-
-    return (accept != null && accept.contains(MediaType.APPLICATION_JSON_VALUE))
-        || "XMLHttpRequest".equalsIgnoreCase(requestedWith);
+      return "evorgang-angular-test".equals( request.getHeader("X-Application") );
   }
-  
-  
-  
   
   
 /*
