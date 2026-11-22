@@ -4,6 +4,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -105,6 +107,16 @@ public class WebSecurityConfig
     return daoAuthenticationProvider;
   }
   
+  
+  
+  @Bean
+  public AuthenticationManager authenticationManager( DaoAuthenticationProvider provider) {
+
+      return new ProviderManager( provider );
+  }
+  
+  
+  
   @Bean
   public PasswordEncoder passwordEncoder()
   {
@@ -164,26 +176,28 @@ public class WebSecurityConfig
 
   
   @Bean
-  @Order(2)
+  @Order(3)
   SecurityFilterChain app(HttpSecurity http) throws Exception
   {
     CookieCsrfTokenRepository csrfRepository =
         CookieCsrfTokenRepository.withHttpOnlyFalse();
 
     http
+      .securityMatcher("/**")
       .csrf(csrf -> csrf
           .csrfTokenRepository(csrfRepository)
           .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
       )
 
       .authorizeHttpRequests(auth -> auth
+          .requestMatchers("/error").permitAll()
           .requestMatchers("/csrf").permitAll()
           .requestMatchers("/admin1/**").hasRole("ADMIN")
           .requestMatchers("/admin2/**").permitAll()
           .requestMatchers("/logoutsuccessfull").permitAll()
           .anyRequest().authenticated()
       )
-
+      
       .exceptionHandling(exception -> exception
           .authenticationEntryPoint((request, response, authException) -> {
 
