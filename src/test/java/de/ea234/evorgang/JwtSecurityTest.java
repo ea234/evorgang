@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Date;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +26,6 @@ import io.jsonwebtoken.Jwts;
 @ActiveProfiles ( "h2" )
 class JwtSecurityTest
 {
-
   private static final String TEST_URL = "/api/security/jwt/test/ping";
 
   @Autowired
@@ -102,4 +102,33 @@ class JwtSecurityTest
 
     mockMvc.perform( post( "/api/security/jwt/login" ).contentType( MediaType.APPLICATION_JSON ).content( loginJson ) ).andExpect( status().isOk() ).andExpect( jsonPath( "$.token" ).isNotEmpty() ).andExpect( jsonPath( "$.tokenType" ).value( "Bearer" ) );
   }
+  
+  
+  @Test
+  void accessWithAdminAuthorityShouldReturn200() throws Exception
+  {
+      String token = jwtService.generateToken(
+          "admin",
+          List.of("EVG_ADMIN")
+      );
+
+      mockMvc.perform(
+          get("/api/security/jwt/test/admin")
+              .header("Authorization", "Bearer " + token)
+      ).andExpect(status().isOk());
+  }  
+  
+  @Test
+  void accessWithoutAdminAuthorityShouldReturn403() throws Exception
+  {
+      String token = jwtService.generateToken(
+          "admin",
+          List.of("EVG_USER")
+      );
+
+      mockMvc.perform(
+          get("/api/security/jwt/test/admin")
+              .header("Authorization", "Bearer " + token)
+      ).andExpect(status().isForbidden());
+  }  
 }

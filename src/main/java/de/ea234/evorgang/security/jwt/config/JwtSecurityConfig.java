@@ -40,9 +40,10 @@ public class JwtSecurityConfig {
                     HttpMethod.POST,
                     "/api/security/jwt/login"
                 ).permitAll()
+                .requestMatchers("/api/security/jwt/test/admin").hasAuthority("EVG_ADMIN")
+                .requestMatchers("/api/security/jwt/test/user").hasAuthority("EVG_USER")
                 .anyRequest().authenticated()
             )
-
             .oauth2ResourceServer(oauth ->
                 oauth.jwt(jwt ->
                     jwt.jwtAuthenticationConverter(

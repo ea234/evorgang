@@ -30,4 +30,23 @@ public class JwtTestController
 
     return "RestControllerVorgang " + System.currentTimeMillis();
   }
+  
+  
+  @GetMapping("/admin")
+  public String admin()
+  {
+      return "Admin access granted";
+  }
+
+  @GetMapping("/user")
+  public String user()
+  {
+      return "User access granted";
+  }
+
+  @GetMapping("/authenticated")
+  public String authenticated()
+  {
+      return "Authentication successful";
+  }  
 }
