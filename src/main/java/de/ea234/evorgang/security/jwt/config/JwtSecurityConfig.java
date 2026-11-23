@@ -4,20 +4,19 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
-
-import de.ea234.evorgang.security.jwt.service.JwtService;
-
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 
 @Configuration
 public class JwtSecurityConfig {
 
+  /*
+   * spring security muss den jwt-claim auch als authorities interpretieren.
+   * ohne diese änderung wäre der claim zwar im token vorhanden, würde aber nicht automatisch als berechtigung verwendet.
+   */
   
     @Bean
     @Order(2)
@@ -45,9 +44,30 @@ public class JwtSecurityConfig {
             )
 
             .oauth2ResourceServer(oauth ->
-                oauth.jwt(Customizer.withDefaults())
+                oauth.jwt(jwt ->
+                    jwt.jwtAuthenticationConverter(
+                        jwtAuthenticationConverter()
+                    )
+                )
             );
 
         return http.build();
+    }
+
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter() 
+    {
+        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+
+        authoritiesConverter.setAuthoritiesClaimName("authorities");
+
+        // Authorities ohne automatisches ROLE_-Präfix übernehmen
+        authoritiesConverter.setAuthorityPrefix("");
+
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+
+        converter.setJwtGrantedAuthoritiesConverter( authoritiesConverter );
+
+        return converter;
     }
 }
